@@ -1,8 +1,9 @@
+import logging
 import os
 import requests
 from typing import Dict, Literal
 from ..connection import  get_access_token
-
+logger = logging.getLogger(__name__)
 class HubSpotListCreator:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
@@ -58,7 +59,7 @@ class HubSpotListCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}
     def delete_list(self, list_id: str) -> Dict:
         """
@@ -90,5 +91,5 @@ class HubSpotListCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}

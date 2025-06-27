@@ -1,9 +1,12 @@
+import logging
 import os
 import requests
 from datetime import datetime, timezone
 from typing import Dict,Optional,Any
 from dateutil import parser
 from ..connection import get_access_token
+
+logger = logging.getLogger(__name__)
 
 class HubSpotTicketCreator:
     def __init__(self):
@@ -106,7 +109,7 @@ class HubSpotTicketCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}
     
     def get_ticket_by_id(self, ticket_id: str) -> Dict:
@@ -137,7 +140,7 @@ class HubSpotTicketCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}
         
     def delete_ticket_by_id(self, ticket_id: str) -> Dict:
@@ -161,7 +164,7 @@ class HubSpotTicketCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}
         
     
@@ -228,7 +231,7 @@ class HubSpotTicketCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}
         
     def get_tickets(
@@ -316,5 +319,5 @@ class HubSpotTicketCreator:
                 error_details = e.response.json()
                 error_message += f" - Details: {error_details}"
 
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"status": "failed", "error": error_message}

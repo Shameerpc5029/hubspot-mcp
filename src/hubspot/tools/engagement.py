@@ -1,20 +1,22 @@
+import logging
 import os
 import requests
 from datetime import datetime, timedelta
 from typing import Dict, Any,List
 from ..connection import get_access_token   
+logger = logging.getLogger(__name__)
 class HubSpotClient:
     def __init__(self, ):
         self.access_token = get_access_token()
         self.base_url = "https://api.hubapi.com"
-        print("HubSpotClient initialized", extra={"path": os.getenv("WM_JOB_PATH")})
+        logger.info("HubSpotClient initialized", extra={"path": os.getenv("WM_JOB_PATH")})
 
     def get_engagement(self, engagement_id: str) -> Dict[str, Any]:
         try:
             if not engagement_id:
                 raise ValueError("Engagement ID is required")
 
-            print("Fetching full engagement details", extra={
+            logger.info("Fetching full engagement details", extra={
                 "engagement_id": engagement_id,
                 "path": os.getenv("WM_JOB_PATH"),
             })
@@ -32,7 +34,7 @@ class HubSpotClient:
 
             if response.status_code not in (200, 201):
                 error_message = f"API request failed: {response.status_code} {response_data.get('message', response.text)}"
-                print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+                logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
                 return {"result": None, "error": error_message}
 
             # Extract engagement details
@@ -52,7 +54,7 @@ class HubSpotClient:
 
         except Exception as e:
             error_message = f"Error fetching engagement: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
         
     def create_engagement(
@@ -182,7 +184,7 @@ class HubSpotClient:
                 "Content-Type": "application/json",
             }
 
-            print(
+            logger.info(
                 f"Creating {object_type} with payload: {create_payload}",
                 extra={"path": os.getenv("WM_JOB_PATH")},
             )
@@ -193,7 +195,7 @@ class HubSpotClient:
 
             if response.status_code not in (200, 201):
                 error_message = f"API request failed: {response.status_code} {response_data.get('message', response.text)}"
-                print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+                logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
                 return {"result": None, "error": error_message}
 
             # Get the created engagement ID
@@ -210,7 +212,7 @@ class HubSpotClient:
                         assoc_endpoint, headers=headers, json=assoc_payload
                     )
                     if assoc_response.status_code not in (200, 201):
-                        print(
+                        logger.info(
                             f"Failed to create association: {assoc_response.status_code} {assoc_response.text}",
                             extra={"path": os.getenv("WM_JOB_PATH")},
                         )
@@ -220,7 +222,7 @@ class HubSpotClient:
 
         except Exception as e:
             error_message = f"Error creating engagement: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
     
     
@@ -229,7 +231,7 @@ class HubSpotClient:
             if not engagement_id:
                 raise ValueError("Engagement ID is required")
 
-            print(
+            logger.info(
                 f"Deleting engagement: {engagement_id}",
                 extra={"path": os.getenv("WM_JOB_PATH")},
             )
@@ -252,7 +254,7 @@ class HubSpotClient:
 
             response_data = response.json()
             error_message = response_data.get("message", response.text)
-            print(
+            logger.info(
                 f"Failed to delete engagement: {error_message}",
                 extra={"path": os.getenv("WM_JOB_PATH")},
             )
@@ -260,7 +262,7 @@ class HubSpotClient:
 
         except Exception as e:
             error_message = f"Error deleting engagement: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
     
     def get_engagements(self) -> Dict[str, Any]:
@@ -280,7 +282,7 @@ class HubSpotClient:
 
                 if response.status_code != 200:
                     error_message = f"Failed to fetch engagements: {response.status_code} {response_data.get('message', response.text)}"
-                    print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+                    logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
                     return {"result": None, "error": error_message}
 
                 all_engagements.extend(response_data.get("results", []))
@@ -290,7 +292,7 @@ class HubSpotClient:
 
         except Exception as e:
             error_message = f"Error fetching engagements: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}    
     
         

@@ -1,8 +1,11 @@
+import logging
 import os
 import requests
 from typing import TypedDict,Dict,Optional,Any,List
 from datetime import datetime ,timezone
 from ..connection import get_access_token
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -123,7 +126,7 @@ class HubSpotClient:
                 payload["associations"] = associations
 
             # Log the request payload
-            print(
+            logger.info(
                 "Sending create deal request to HubSpot",
                 extra={"path": os.getenv("WM_JOB_PATH"), "payload": payload},
             )
@@ -140,7 +143,7 @@ class HubSpotClient:
                     f"{response.reason} for url: {response.url}. "
                     f"Details: {error_content}"
                 )
-                print(
+                logger.info(
                     error_message,
                     extra={
                         "path": os.getenv("WM_JOB_PATH"),
@@ -151,7 +154,7 @@ class HubSpotClient:
                 return {"result": None, "error": error_message}
 
             created_deal = response.json()
-            print(
+            logger.info(
                 f"Successfully created deal '{deal_name}'",
                 extra={
                     "path": os.getenv("WM_JOB_PATH"),
@@ -163,12 +166,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
 
@@ -216,7 +219,7 @@ class HubSpotClient:
 
             if not response.ok:
                 error_message = f"API request failed: {response.status_code} {response.reason}. Details: {response.text}"
-                print(
+                logger.info(
                     error_message,
                     extra={
                         "path": os.getenv("WM_JOB_PATH"),
@@ -229,12 +232,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
 
@@ -313,7 +316,7 @@ class HubSpotClient:
                 error_message = (
                     f"API request failed: {response.status_code} {response.text}"
                 )
-                print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+                logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
                 return {"result": None, "error": error_message}
 
             data = response.json()
@@ -321,12 +324,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
     
 
@@ -349,7 +352,7 @@ class HubSpotClient:
                     f"{response.reason} for url: {response.url}. "
                     f"Details: {error_content}"
                 )
-                print(
+                logger.info(
                     error_message,
                     extra={
                         "path": os.getenv("WM_JOB_PATH"),
@@ -359,7 +362,7 @@ class HubSpotClient:
                 return {"result": None, "error": error_message}
 
             pipelines = response.json()
-            print(
+            logger.info(
                 "Successfully fetched HubSpot deal pipelines",
                 extra={
                     "path": os.getenv("WM_JOB_PATH"),
@@ -371,12 +374,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}   
 
     
@@ -395,19 +398,19 @@ class HubSpotClient:
             response = requests.get(endpoint, headers=headers, params=params)
             if not response.ok:
                 error_message = f"API request failed: {response.status_code} {response.reason} - {response.text}"
-                print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+                logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
                 return {"result": None, "error": error_message}
 
             return {"result": response.json(), "error": None}
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}  
 
     
@@ -431,7 +434,7 @@ class HubSpotClient:
                 response = requests.get(endpoint, headers=headers, params=params)
                 if not response.ok:
                     error_message = f"API request failed: {response.status_code} {response.reason} for url: {response.url}. Details: {response.text}"
-                    print(
+                    logger.info(
                         error_message,
                         extra={"path": os.getenv("WM_JOB_PATH"), "response_content": response.text},
                     )
@@ -452,12 +455,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}   
 
     
@@ -542,7 +545,7 @@ class HubSpotClient:
 
                 if not response.ok:
                     error_message = f"API request failed: {response.status_code} {response.reason} for url: {response.url}. Details: {response.text}"
-                    print(
+                    logger.info(
                         error_message,
                         extra={
                             "path": os.getenv("WM_JOB_PATH"),
@@ -564,12 +567,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
         
 
@@ -606,7 +609,7 @@ class HubSpotClient:
                 error_message = (
                     f"API request failed: {response.status_code} {response.text}"
                 )
-                print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+                logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
                 return {"result": None, "error": error_message}
 
             data = response.json()
@@ -614,12 +617,12 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
         
     
@@ -643,7 +646,7 @@ class HubSpotClient:
                 error_message = (
                     f"Failed to delete deal: {response.status_code} {response.text}"
                 )
-                print(
+                logger.info(
                     error_message,
                     extra={"path": os.getenv("WM_JOB_PATH"), "deal_id": deal_id},
                 )
@@ -651,11 +654,11 @@ class HubSpotClient:
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
+            logger.info(error_message, extra={"path": os.getenv("WM_JOB_PATH")})
             return {"result": None, "error": error_message}    
     

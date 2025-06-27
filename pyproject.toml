@@ -1,12 +1,26 @@
 [project]
 name = "hubspot-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Model Context Protocol server for HubSpot CRM integration"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp[cli]>=1.10.0",
+    "mcp>=1.10.0",
     "python-dateutil>=2.9.0.post0",
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
 ]
+
+[project.scripts]
+hubspot-mcp = "hubspot.server:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hubspot*"]
+
+[tool.setuptools.package-dir]
+"" = "src"

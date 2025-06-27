@@ -88,7 +88,7 @@ HUBSPOT_BASE_URL=https://api.hubapi.com
 
 #### Method 1: Direct Script
 ```bash
-python run_server.py
+python main.py
 ```
 
 #### Method 2: Python Module
@@ -111,7 +111,7 @@ The server communicates via stdin/stdout using the MCP protocol. Configure your 
   "mcpServers": {
     "hubspot": {
       "command": "python",
-      "args": ["/path/to/hubspot-mcp/run_server.py"]
+      "args": ["/path/to/hubspot-mcp/main.py"]
     }
   }
 }

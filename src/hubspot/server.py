@@ -6,6 +6,7 @@ It implements the MCP stdio transport protocol for seamless integration with MCP
 """
 
 import json
+import logging
 from typing import Any, Dict, List
 import asyncio
 import sys
@@ -16,6 +17,10 @@ from mcp.types import (
     TextContent,
     Tool,
 )
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import the HubSpot client and tools
 from .tools.company import HubSpotClient, create_company
@@ -33,23 +38,78 @@ from .tools.contact import (
 class HubSpotMCPServer:
     """MCP Server for HubSpot CRM integration using proper MCP patterns."""
     
-    def __init__(self, connection_id: str = "default"):
+    def __init__(self):
         """Initialize the HubSpot MCP server with all tools."""
         self.server = Server("hubspot-mcp")
-        self.connection_id = connection_id
-        self.hubspot_client = HubSpotClient()
         
-        # Initialize contact management tools
-        self.list_manager = HubSpotListManager()
-        self.contact_deleter = HubSpotContactDeleter()
-        self.contact_updater = HubSpotContactUpdater()
-        self.contact_searcher = HubSpotContactSearcher()
-        self.contact_getter = HubSpotContactGetter()
-        self.recent_contacts_getter = HubSpotRecentContactsGetter()
-        self.contact_creator = HubSpotContactCreator()
+        # Initialize clients lazily to avoid authentication errors during startup
+        self._hubspot_client = None
+        self._list_manager = None
+        self._contact_deleter = None
+        self._contact_updater = None
+        self._contact_searcher = None
+        self._contact_getter = None
+        self._recent_contacts_getter = None
+        self._contact_creator = None
         
         self._setup_tools()
+        logger.info("HubSpot MCP Server initialized successfully")
 
+    @property
+    def hubspot_client(self):
+        """Lazy initialization of HubSpot client."""
+        if self._hubspot_client is None:
+            self._hubspot_client = HubSpotClient()
+        return self._hubspot_client
+
+    @property
+    def list_manager(self):
+        """Lazy initialization of list manager."""
+        if self._list_manager is None:
+            self._list_manager = HubSpotListManager()
+        return self._list_manager
+
+    @property
+    def contact_deleter(self):
+        """Lazy initialization of contact deleter."""
+        if self._contact_deleter is None:
+            self._contact_deleter = HubSpotContactDeleter()
+        return self._contact_deleter
+
+    @property
+    def contact_updater(self):
+        """Lazy initialization of contact updater."""
+        if self._contact_updater is None:
+            self._contact_updater = HubSpotContactUpdater()
+        return self._contact_updater
+
+    @property
+    def contact_searcher(self):
+        """Lazy initialization of contact searcher."""
+        if self._contact_searcher is None:
+            self._contact_searcher = HubSpotContactSearcher()
+        return self._contact_searcher
+
+    @property
+    def contact_getter(self):
+        """Lazy initialization of contact getter."""
+        if self._contact_getter is None:
+            self._contact_getter = HubSpotContactGetter()
+        return self._contact_getter
+
+    @property
+    def recent_contacts_getter(self):
+        """Lazy initialization of recent contacts getter."""
+        if self._recent_contacts_getter is None:
+            self._recent_contacts_getter = HubSpotRecentContactsGetter()
+        return self._recent_contacts_getter
+
+    @property
+    def contact_creator(self):
+        """Lazy initialization of contact creator."""
+        if self._contact_creator is None:
+            self._contact_creator = HubSpotContactCreator()
+        return self._contact_creator
     
     def _setup_tools(self):
         """Setup all available tools with their schemas."""
@@ -301,6 +361,8 @@ class HubSpotMCPServer:
         async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             """Execute a tool with the given arguments."""
             try:
+                logger.info(f"Executing tool: {name} with arguments: {arguments}")
+                
                 # Route the tool call to the appropriate function
                 if name == "create_company":
                     result = self._create_company(**arguments)
@@ -349,6 +411,7 @@ class HubSpotMCPServer:
                 else:
                     raise ValueError(f"Unknown tool: {name}")
                 
+                logger.info(f"Tool {name} executed successfully")
                 # Return the result as TextContent
                 return [TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
                 
@@ -359,6 +422,7 @@ class HubSpotMCPServer:
                     "tool": name,
                     "arguments": arguments
                 }
+                logger.error(f"Tool {name} execution failed: {str(e)}")
                 return [TextContent(type="text", text=json.dumps(error_result, indent=2))]
     
     def _create_company(self, **kwargs) -> Dict[str, Any]:
@@ -367,10 +431,12 @@ class HubSpotMCPServer:
             # Import the create_company function from the client module
             return create_company(self.hubspot_client, **kwargs)
         except Exception as e:
+            logger.error(f"Error creating company: {str(e)}")
             return {"result": None, "error": str(e)}
     
     async def run(self):
         """Run the MCP server using stdio transport."""
+        logger.info("Starting HubSpot MCP server with stdio transport")
         async with stdio_server() as (read_stream, write_stream):
             await self.server.run(
                 read_stream, 
@@ -382,35 +448,15 @@ class HubSpotMCPServer:
 def main():
     """Main entry point for the MCP server."""
     
-    # Check if we're being run directly or as a module
-    if len(sys.argv) > 1 and sys.argv[1] == "--help":
-        print("HubSpot MCP Server")
-        print("A Model Context Protocol server for HubSpot CRM integration.")
-        print("")
-        print("Usage:")
-        print("  python -m hubspot_mcp.server")
-        print("  or")
-        print("  hubspot-mcp")
-        print("")
-        print("This server provides tools for managing:")
-        print("  • Companies (create, read, update, delete)")
-        print("  • Company search and filtering")
-        print("  • Recent company retrieval")
-        print("  • Contacts (create, read, update, delete)")
-        print("  • Contact search and list management")
-        print("")
-        print("The server communicates via stdin/stdout using the MCP protocol.")
-        return
-    
+
     # Create and run the server
-    connection_id = sys.argv[1] if len(sys.argv) > 1 else "default"
-    server = HubSpotMCPServer(connection_id)
+    server = HubSpotMCPServer()
     try:
         asyncio.run(server.run())
     except KeyboardInterrupt:
-        print("\nServer shutting down...", file=sys.stderr)
+        logger.info("Server shutting down...")
     except Exception as e:
-        print(f"Server error: {e}", file=sys.stderr)
+        logger.error(f"Server error: {e}")
         sys.exit(1)
 
 

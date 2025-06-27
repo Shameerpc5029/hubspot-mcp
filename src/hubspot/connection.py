@@ -1,7 +1,12 @@
 import os
+import logging
 from typing import Any
 import requests
 from dotenv import load_dotenv
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv(override=True)
 
@@ -33,10 +38,13 @@ def get_connection_credentials() -> dict[str, Any]:
     headers = {"Authorization": f"Bearer {secret_key}"}
     
     try:
+        logger.info(f"Requesting connection credentials from Nango: {url}")
         response = requests.get(url, headers=headers, params=params, timeout=30)
         response.raise_for_status()  # Raise exception for bad status codes
+        logger.info("Successfully retrieved connection credentials from Nango")
         return response.json()
     except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to get connection credentials from Nango: {str(e)}")
         raise ValueError(f"Failed to get connection credentials from Nango: {str(e)}")
 
 def get_access_token() -> str:
@@ -46,11 +54,13 @@ def get_access_token() -> str:
         access_token = credentials.get("credentials", {}).get("access_token")
         if not access_token:
             raise ValueError("Access token not found in credentials response")
+        logger.info("Successfully retrieved access token from Nango")
         return access_token
     except Exception as e:
         # For development/testing, you might want to fall back to a direct token
         direct_token = os.environ.get("HUBSPOT_ACCESS_TOKEN")
         if direct_token:
-            print("Warning: Using direct HubSpot access token instead of Nango credentials")
+            logger.warning("Using direct HubSpot access token instead of Nango credentials")
             return direct_token
+        logger.error(f"Failed to get access token: {str(e)}")
         raise ValueError(f"Failed to get access token: {str(e)}")

@@ -1,8 +1,12 @@
 import os
+import logging
 import requests
 from datetime import datetime
 from typing import Dict, Any, Optional
 from ..connection import get_access_token
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class HubSpotListManager:
@@ -11,6 +15,14 @@ class HubSpotListManager:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def add_contact_to_list(self, list_id: str, contact_id: str) -> Dict[str, Any]:
         """
@@ -24,19 +36,19 @@ class HubSpotListManager:
             dict: API response containing success or failure details.
         """
         payload = {"vids": [contact_id]}
-        access_token = get_access_token()
+        headers = self._get_headers()
 
         try:
+            logger.info(f"Adding contact {contact_id} to list {list_id}")
             response = requests.post(
                 f"{self.base_url}/contacts/v1/lists/{list_id}/add",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
                 json=payload,
+                timeout=30
             )
             response.raise_for_status()
             data = response.json()
+            logger.info(f"Successfully added contact {contact_id} to list {list_id}")
             return {"status": "success", "response": data}
         except requests.exceptions.RequestException as e:
             error_message = (
@@ -49,7 +61,7 @@ class HubSpotListManager:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(error_message)
             return {"status": "failed", "error": error_message}
 
     def remove_contact_from_list(self, list_id: str, contact_id: str) -> Dict[str, Any]:
@@ -64,19 +76,19 @@ class HubSpotListManager:
             dict: API response containing success or failure details.
         """
         payload = {"vids": [contact_id]}
-        access_token = get_access_token()
+        headers = self._get_headers()
         
         try:
+            logger.info(f"Removing contact {contact_id} from list {list_id}")
             response = requests.post(
                 f"{self.base_url}/contacts/v1/lists/{list_id}/remove",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
                 json=payload,
+                timeout=30
             )
             response.raise_for_status()
             data = response.json()
+            logger.info(f"Successfully removed contact {contact_id} from list {list_id}")
             return {"status": "success", "response": data}
         except requests.exceptions.RequestException as e:
             error_message = f"Error removing contact {contact_id} from list {list_id}: {str(e)}"
@@ -87,7 +99,7 @@ class HubSpotListManager:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(error_message)
             return {"status": "failed", "error": error_message}
 
 
@@ -97,6 +109,14 @@ class HubSpotContactDeleter:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def delete_contact_by_id(self, contact_id: str) -> Dict[str, Any]:
         """
@@ -111,21 +131,17 @@ class HubSpotContactDeleter:
         try:
             # Build the delete endpoint URL
             endpoint = f"{self.base_url}/crm/v3/objects/contacts/{contact_id}"
-            access_token = get_access_token()
+            headers = self._get_headers()
             
+            logger.info(f"Deleting contact with ID: {contact_id}")
             # Make DELETE request to HubSpot API
-            response = requests.delete(
-                endpoint,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                }
-            )
+            response = requests.delete(endpoint, headers=headers, timeout=30)
 
             # Raise exception for error status codes
             response.raise_for_status()
             
             # Return success response
+            logger.info(f"Successfully deleted contact {contact_id}")
             return {
                 "status": "success",
                 "message": f"Contact {contact_id} successfully deleted"
@@ -140,7 +156,7 @@ class HubSpotContactDeleter:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(f"Failed to delete contact {contact_id}: {error_message}")
             return {"status": "failed", "error": error_message}
 
     def delete_contact_by_email(self, email: str) -> Dict[str, Any]:
@@ -166,21 +182,21 @@ class HubSpotContactDeleter:
                     }]
                 }]
             }
-            access_token = get_access_token()
+            headers = self._get_headers()
 
+            logger.info(f"Searching for contact with email: {email}")
             search_response = requests.post(
                 search_endpoint,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
-                json=search_payload
+                headers=headers,
+                json=search_payload,
+                timeout=30
             )
             search_response.raise_for_status()
             
             result = search_response.json()
             
             if not result.get("total", 0):
+                logger.warning(f"No contact found with email: {email}")
                 return {
                     "status": "failed",
                     "error": f"No contact found with email: {email}"
@@ -188,6 +204,7 @@ class HubSpotContactDeleter:
 
             # Get the contact ID and delete the contact
             contact_id = result["results"][0]["id"]
+            logger.info(f"Found contact {contact_id} for email {email}, proceeding with deletion")
             return self.delete_contact_by_id(contact_id)
 
         except requests.exceptions.RequestException as e:
@@ -199,7 +216,7 @@ class HubSpotContactDeleter:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(f"Failed to delete contact by email {email}: {error_message}")
             return {"status": "failed", "error": error_message}
 
 
@@ -209,6 +226,14 @@ class HubSpotContactUpdater:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def update_contact_by_email(self, email: str, properties: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -229,24 +254,25 @@ class HubSpotContactUpdater:
             payload = {
                 "properties": properties
             }
-            access_token = get_access_token()
+            headers = self._get_headers()
 
+            logger.info(f"Updating contact with email: {email}, properties: {list(properties.keys())}")
             # Make PATCH request to HubSpot API
             response = requests.patch(
                 endpoint,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
-                json=payload
+                headers=headers,
+                json=payload,
+                timeout=30
             )
 
             # Raise exception for error status codes
             response.raise_for_status()
             
+            result = response.json()
+            logger.info(f"Successfully updated contact {email}")
             return {
                 "status": "success",
-                "contact": response.json()
+                "contact": result
             }
 
         except requests.exceptions.RequestException as e:
@@ -258,7 +284,7 @@ class HubSpotContactUpdater:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(f"Failed to update contact {email}: {error_message}")
             return {"status": "failed", "error": error_message}
 
 
@@ -268,6 +294,14 @@ class HubSpotContactSearcher:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def search_contacts(self, email: str = "", firstname: str = "", phone: str = "", limit: int = 100) -> Dict[str, Any]:
         """
@@ -286,40 +320,45 @@ class HubSpotContactSearcher:
             endpoint = f"{self.base_url}/crm/v3/objects/contacts/search"
             
             filters = []
+            search_criteria = []
             if email:
                 filters.append({"propertyName": "email", "operator": "EQ", "value": email})
+                search_criteria.append(f"email:{email}")
             if firstname:
                 filters.append({"propertyName": "firstname", "operator": "EQ", "value": firstname})
+                search_criteria.append(f"firstname:{firstname}")
             if phone:
                 filters.append({"propertyName": "phone", "operator": "EQ", "value": phone})
+                search_criteria.append(f"phone:{phone}")
 
             payload = {
                 "filterGroups": [{"filters": filters}],
                 "properties": ["email", "firstname", "phone"],
                 "limit": limit
             }
-            access_token = get_access_token()
+            headers = self._get_headers()
 
+            logger.info(f"Searching contacts with criteria: {', '.join(search_criteria)}, limit: {limit}")
             response = requests.post(
                 endpoint, 
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                }, 
-                json=payload
+                headers=headers, 
+                json=payload,
+                timeout=30
             )
             response.raise_for_status()
             result = response.json()
             
+            total_found = result.get("total", 0)
+            logger.info(f"Found {total_found} contacts matching search criteria")
             return {
                 "status": "success",
-                "total": result.get("total", 0),
+                "total": total_found,
                 "contacts": result.get("results", []),
             }
 
         except requests.exceptions.RequestException as e:
             error_message = f"Error searching contacts: {str(e)}"
-            print(error_message)
+            logger.error(f"Contact search failed: {error_message}")
             return {"status": "failed", "error": error_message}
 
 
@@ -329,6 +368,14 @@ class HubSpotContactGetter:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def get_contact_by_email(self, email: str) -> Dict[str, Any]:
         """
@@ -354,16 +401,15 @@ class HubSpotContactGetter:
                     }]
                 }]
             }
-            access_token = get_access_token()
+            headers = self._get_headers()
             
+            logger.info(f"Fetching contact with email: {email}")
             # Make POST request to HubSpot Search API
             response = requests.post(
                 endpoint,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
-                json=payload
+                headers=headers,
+                json=payload,
+                timeout=30
             )
 
             # Raise exception for error status codes
@@ -373,15 +419,18 @@ class HubSpotContactGetter:
             result = response.json()
             
             if not result.get("total", 0):
+                logger.warning(f"No contact found with email: {email}")
                 return {
                     "status": "failed",
                     "error": f"No contact found with email: {email}"
                 }
 
             # Return the first matching contact
+            contact = result["results"][0]
+            logger.info(f"Successfully found contact {contact.get('id')} with email: {email}")
             return {
                 "status": "success",
-                "contact": result["results"][0]
+                "contact": contact
             }
 
         except requests.exceptions.RequestException as e:
@@ -393,7 +442,7 @@ class HubSpotContactGetter:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(f"Failed to get contact {email}: {error_message}")
             return {"status": "failed", "error": error_message}
 
 
@@ -403,6 +452,14 @@ class HubSpotRecentContactsGetter:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def get_recent_contacts(
         self,
@@ -436,7 +493,7 @@ class HubSpotRecentContactsGetter:
                 ],
                 "limit": limit,
             }
-            access_token = get_access_token()
+            headers = self._get_headers()
 
             # Add time filter if specified
             if timestamp:
@@ -451,26 +508,30 @@ class HubSpotRecentContactsGetter:
                         ]
                     }
                 )
+                logger.info(f"Fetching recent contacts since {since}, limit: {limit}")
+            else:
+                logger.info(f"Fetching recent contacts, limit: {limit}")
 
             # Make POST request to HubSpot Search API
             response = requests.post(
                 endpoint, 
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                }, 
-                json=payload
+                headers=headers, 
+                json=payload,
+                timeout=30
             )
 
             # Raise exception for error status codes
             response.raise_for_status()
 
             result = response.json()
-
+            total_found = result.get("total", 0)
+            contacts = result.get("results", [])
+            
+            logger.info(f"Successfully retrieved {len(contacts)} recent contacts (total: {total_found})")
             return {
                 "status": "success",
-                "total": result.get("total", 0),
-                "contacts": result.get("results", []),
+                "total": total_found,
+                "contacts": contacts,
             }
 
         except requests.exceptions.RequestException as e:
@@ -482,7 +543,7 @@ class HubSpotRecentContactsGetter:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(f"Failed to get recent contacts: {error_message}")
             return {"status": "failed", "error": error_message}
 
 
@@ -492,6 +553,14 @@ class HubSpotContactCreator:
     def __init__(self):
         """Initialize HubSpot API configuration using OAuth access token."""
         self.base_url = "https://api.hubapi.com"
+
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
 
     def create_contact(self, email: str, first_name: str, last_name: str, phone: str = None) -> Dict[str, Any]:
         """
@@ -519,24 +588,25 @@ class HubSpotContactCreator:
 
             # Prepare request payload
             payload = {"properties": contact_properties}
-            access_token = get_access_token()
+            headers = self._get_headers()
             
+            logger.info(f"Creating contact: {first_name} {last_name} ({email})")
             # Make POST request to HubSpot API
             response = requests.post(
                 f"{self.base_url}/crm/v3/objects/contacts",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
                 json=payload,
+                timeout=30
             )
 
             # Raise exception for error status codes
             response.raise_for_status()
 
+            result = response.json()
+            logger.info(f"Successfully created contact {result.get('id')}: {first_name} {last_name} ({email})")
             return {
                 "status": "success",
-                "contact": response.json()
+                "contact": result
             }
 
         except requests.exceptions.RequestException as e:
@@ -548,7 +618,7 @@ class HubSpotContactCreator:
                 except:
                     pass
 
-            print(error_message)
+            logger.error(f"Failed to create contact {first_name} {last_name} ({email}): {error_message}")
             return {"status": "failed", "error": error_message}
 
 
@@ -558,38 +628,45 @@ class HubSpotClient:
     def __init__(self):
         self.base_url = "https://api.hubapi.com"
 
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with fresh access token."""
+        access_token = get_access_token()
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+
     def get_all_contacts(self) -> Dict[str, Any]:
         """Get all contacts from HubSpot."""
         try:
             endpoint = f"{self.base_url}/crm/v3/objects/contacts"
-            access_token = get_access_token()
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json",
-            }
+            headers = self._get_headers()
 
             params = {
                 "properties": "firstname,lastname,email,phone,company",
             }
 
-            response = requests.get(endpoint, headers=headers, params=params)
+            logger.info("Fetching all contacts")
+            response = requests.get(endpoint, headers=headers, params=params, timeout=30)
 
             if response.status_code != 200:
                 error_message = (
                     f"API request failed: {response.status_code} {response.text}"
                 )
-                print(error_message)
+                logger.error(f"Get all contacts failed: {error_message}")
                 return {"result": None, "error": error_message}
 
             data = response.json()
-            return {"result": data.get("results", []), "error": None}
+            results = data.get("results", [])
+            logger.info(f"Successfully retrieved {len(results)} contacts")
+            return {"result": results, "error": None}
 
         except requests.exceptions.RequestException as e:
             error_message = f"API request failed: {str(e)}"
-            print(error_message)
+            logger.error(f"Request exception while fetching all contacts: {error_message}")
             return {"result": None, "error": error_message}
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
-            print(error_message)
+            logger.error(f"Unexpected error while fetching all contacts: {error_message}")
             return {"result": None, "error": error_message}
